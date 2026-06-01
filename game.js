@@ -3,6 +3,7 @@
 const GRID_SIZE = 6;
 const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
 const GAME_DURATION = 30;
+const CHEAT_CODE = 'daniel_did_not_create_this_game';
 
 const MICE = ['🐭', '🐁'];
 const CHEESE = '🧀';
@@ -15,6 +16,13 @@ const LEVELS = [
   { mouseCount: 6, speed: 650,  points: 30 },
 ];
 
+const CHEAT_LEVELS = [
+  { mouseCount: 3, speed: 5000, points: 2000 },
+  { mouseCount: 4, speed: 5000, points: 2000 },
+  { mouseCount: 5, speed: 5000, points: 2000 },
+  { mouseCount: 6, speed: 5000, points: 2000 },
+];
+
 const board        = document.getElementById('board');
 const scoreEl      = document.getElementById('score');
 const timerEl      = document.getElementById('timer');
@@ -25,6 +33,7 @@ const menuTitle    = document.getElementById('menu-title');
 const menuSubtitle = document.getElementById('menu-subtitle');
 const finalScoreWrap = document.getElementById('final-score-wrap');
 const finalScoreEl   = document.getElementById('final-score');
+const cheatInput   = document.getElementById('cheat-input');
 
 let cells = [];
 let score = 0;
@@ -34,6 +43,15 @@ let mousePositions = new Set();
 let moveInterval = null;
 let timerInterval = null;
 let running = false;
+let cheatMode = false;
+
+function activateCheatMode() {
+  cheatMode = true;
+  document.body.classList.add('cheat-mode');
+  document.querySelector('h1').classList.add('cheat-active');
+  cheatInput.value = '';
+  cheatInput.placeholder = '✅ קוד הופעל!';
+}
 
 function buildBoard() {
   board.innerHTML = '';
@@ -62,7 +80,8 @@ function renderBoard() {
 
 function placeMice() {
   mousePositions.clear();
-  const level = LEVELS[levelIndex];
+  const levels = cheatMode ? CHEAT_LEVELS : LEVELS;
+  const level = levels[levelIndex];
   while (mousePositions.size < level.mouseCount) {
     mousePositions.add(Math.floor(Math.random() * TOTAL_CELLS));
   }
@@ -70,7 +89,8 @@ function placeMice() {
 }
 
 function moveMice() {
-  const level = LEVELS[levelIndex];
+  const levels = cheatMode ? CHEAT_LEVELS : LEVELS;
+  const level = levels[levelIndex];
   const newPositions = new Set();
   mousePositions.forEach(() => {
     let pos;
@@ -94,7 +114,8 @@ function onCellClick(e) {
   const idx = parseInt(e.currentTarget.dataset.index, 10);
 
   if (mousePositions.has(idx)) {
-    const level = LEVELS[levelIndex];
+    const levels = cheatMode ? CHEAT_LEVELS : LEVELS;
+    const level = levels[levelIndex];
     score += level.points;
     scoreEl.textContent = score;
     mousePositions.delete(idx);
@@ -117,7 +138,7 @@ function onCellClick(e) {
 
     const thresholds = [100, 250, 450, 700];
     const newLevelIndex = thresholds.filter(t => score >= t).length;
-    if (newLevelIndex > levelIndex && newLevelIndex < LEVELS.length) {
+    if (newLevelIndex > levelIndex && newLevelIndex < levels.length) {
       levelIndex = newLevelIndex;
       levelEl.textContent = levelIndex + 1;
       restartMoveInterval();
@@ -157,7 +178,8 @@ function startTimer() {
 
 function restartMoveInterval() {
   clearInterval(moveInterval);
-  moveInterval = setInterval(moveMice, LEVELS[levelIndex].speed);
+  const levels = cheatMode ? CHEAT_LEVELS : LEVELS;
+  moveInterval = setInterval(moveMice, levels[levelIndex].speed);
 }
 
 function startGame() {
@@ -170,6 +192,11 @@ function startGame() {
   timerEl.textContent = GAME_DURATION;
   timerEl.classList.remove('warning');
   levelEl.textContent = '1';
+
+  if (!cheatMode) {
+    document.body.classList.remove('cheat-mode');
+    document.querySelector('h1').classList.remove('cheat-active');
+  }
 
   overlay.classList.remove('visible');
   buildBoard();
@@ -199,6 +226,21 @@ function getRank(s) {
   return '😅 העכברים ניצחו הפעם!';
 }
 
+function handleCheatInput(e) {
+  if (e.key === 'Enter') {
+    if (cheatInput.value === CHEAT_CODE) {
+      activateCheatMode();
+    } else {
+      cheatInput.value = '';
+      cheatInput.placeholder = '❌ קוד לא נכון...';
+      setTimeout(() => {
+        cheatInput.placeholder = '🔐 קוד סודי...';
+      }, 2000);
+    }
+  }
+}
+
+cheatInput.addEventListener('keypress', handleCheatInput);
 startBtn.addEventListener('click', startGame);
 
 buildBoard();
